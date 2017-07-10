@@ -74,10 +74,26 @@ class ViewTestCase(TestCase):
     
     def setUp(self):
 	"""Define  the test client and other test variables"""
-	user = User.objects.create(username="nerd")
+	#user = User.objects.create(username="nerd")
+
+	self.duckling_name = "Jimmy"
+        self.duckling_password = "xyz"
+        self.duckling_user = User(username=self.duckling_name, password=self.duckling_password)
+        self.duckling_user.save()
+        self.schedule = schedule('django.core.mail.send_mail',
+             'Follow up',
+             'This is in a test',
+             'from@example.com',
+             ['scout.julia@gmail.com'],
+             schedule_type=Schedule.ONCE,
+             next_run=timezone.now())
+
+        self.duckling = Duckling(user=self.duckling_user, notification_schedule=self.schedule)
+	self.duckling.save()
 
 	self.client = APIClient()
-	self.quack_data = {'message': 'postive vibe ~~~', 'submitted_by': user.id}
+	self.client.force_authenticate(user=self.duckling.user)
+	self.quack_data = {'message': 'postive vibe ~~~', 'submitted_by': self.duckling.id}
 	self.response = self.client.post(
 	    reverse('createquack'),
 	    self.quack_data,
@@ -87,4 +103,13 @@ class ViewTestCase(TestCase):
 	"""Test the api has quack creation capability."""
 	self.assertEqual(self.response.status_code, status.HTTP_201_CREATED)
 
-   
+    def test_api_can_retieve_quack_list(self):
+	"""Test the api has quack retieval capability."""
+	quack = Quack(message="positive vibe~")
+	quack.save()
+	self.duckling.quack_list.add(quack)   
+	response = self.client.get(
+            '/retrievequacks/',
+            format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
