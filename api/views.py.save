@@ -7,9 +7,6 @@ from rest_framework import generics, permissions
 from .serializers import QuackSerializer, DucklingSerializer, UserSerializer
 from .models import Quack, Duckling
 from rest_framework.response import Response
-from .tasks import update_or_add_schedule
-from .permissions import IsModerator, IsOwner
-from django.contrib.auth.models import User
 
 # Create your views here.
 
@@ -42,28 +39,14 @@ class RegisterUserView(generics.CreateAPIView):
     permission_classes = (permissions.AllowAny,)
 
 class UpdateSettingsView(generics.RetrieveUpdateAPIView):
-    queryset = Duckling.objects.all()
     serializer_class = DucklingSerializer
-    permission_classes = (permissions.IsAuthenticated, IsOwner)
-    partial = True   
- 
-    def get_object(self):
-        queryset = self.request.user.related_duckling
+    permission_classes = (permissions.IsAuthenticated,)
     
     def retrieve(self, request):
 	queryset = self.request.user.related_duckling
 	serializer = DucklingSerializer(queryset)
         return Response(serializer.data)
     
-    def perform_update(self, serializer):
-#        serializer.save(user=Duckling.objects.get(user=self.request.user).user)	
-## update duckling's notification_schedule, or create if already exists
-	#super(serializer).perform_update
-	this_duckling = self.request.user.related_duckling
-	min = serializer.validated_data['minute_frequency']
-	pref_time = serializer.validated_data['preferred_time']
-	this_duckling.minute_frequency = min
-	this_duckling.preferred_time= pref_time
-	this_duckling.wants_push = serializer.validated_data['wants_push']
-	this_duckling.save()
-	update_or_add_schedule(self.request.user.related_duckling)        
+   def update(self, request):
+	serializer.save()
+	#self.request.user.related_duckling

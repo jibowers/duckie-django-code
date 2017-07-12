@@ -13,13 +13,15 @@ class Duckling(models.Model):
     user = models.OneToOneField(User, on_delete =models.CASCADE, related_name='related_duckling')
     is_moderator = models.BooleanField(default=False)
     wants_push = models.BooleanField(default=False)
-    notification_schedule = models.OneToOneField(Schedule, on_delete=models.CASCADE)
+    notification_schedule = models.OneToOneField(Schedule, on_delete=models.CASCADE, null=True, blank=True)
     quack_list = models.ManyToManyField('Quack', blank=True)
-    
+    minute_frequency = models.IntegerField(default = 1440)
+    preferred_time = models.CharField(max_length=4, default = "", blank=True)
+
     def __str__(self):
         """return a human readable representation of the model instance"""
         return "{}".format(self.user.username)
-"""
+
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
@@ -28,7 +30,7 @@ def create_user_profile(sender, instance, created, **kwargs):
 @receiver(post_save, sender=User)
 def save_user_profile(sender, instance, **kwargs):
     instance.related_duckling.save()
-"""
+
 class Quack(models.Model):
     message = models.CharField(max_length=500)
     submitted_by = models.ForeignKey(Duckling, null=True, on_delete=models.SET_NULL)

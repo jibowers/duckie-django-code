@@ -21,17 +21,9 @@ class ModelTestCase(TestCase):
         self.duckling_name = "Jimmy"
 	self.duckling_password = "xyz"
 	self.duckling_user = User(username=self.duckling_name, password=self.duckling_password)
-        self.duckling_user.save()
-	self.schedule = schedule('django.core.mail.send_mail',
-             'Follow up',
-             'This is in a test',
-             'from@example.com',
-             ['scout.julia@gmail.com'],
-             schedule_type=Schedule.ONCE,
-             next_run=timezone.now())
-
-	self.duckling = Duckling(user=self.duckling_user, notification_schedule=self.schedule)
-
+#        self.duckling_user.save()
+	
+	#self.duckling = self.duckling_user.related_duckling
 	message = "Positive vibe~~~"
 	self.quack = Quack(message=message)
 
@@ -39,7 +31,7 @@ class ModelTestCase(TestCase):
     def test_model_can_create_a_duckling(self):
         """Test the duckling model can create a duckling."""
         old_count = Duckling.objects.count()
-        self.duckling.save()
+        self.duckling_user.save()
         new_count = Duckling.objects.count()
         self.assertNotEqual(old_count, new_count)
 
@@ -53,7 +45,9 @@ class ModelTestCase(TestCase):
     def test_model_can_add_quack_to_duckling(self):
 	"""Test that a quack can be added to a duckling's manyToManyField"""
 	""" relies on the first two tests succeeding"""
-	self.duckling.save()
+	self.duckling_user.save()
+	self.duckling = self.duckling_user.related_duckling
+
 	self.quack.save()
 	old_count = self.duckling.quack_list.count()
 	self.duckling.quack_list.add(self.quack)
@@ -62,9 +56,9 @@ class ModelTestCase(TestCase):
 
     def test_model_can_create_quack_with_submitted_by(self):
 	""" Test that duckling can be added to Quack's submitted_by ForeignKey"""
-	self.duckling.save()
+	self.duckling_user.save()
 	old_bool = self.quack.submitted_by
-	self.quack.submitted_by = self.duckling
+	self.quack.submitted_by = self.duckling_user.related_duckling
 	self.quack.save()
 	new_bool = self.quack.submitted_by
 	self.assertNotEqual(old_bool, new_bool)
@@ -80,19 +74,12 @@ class ViewTestCase(TestCase):
         self.duckling_password = "xyz"
         self.duckling_user = User(username=self.duckling_name, password=self.duckling_password)
         self.duckling_user.save()
-        self.schedule = schedule('django.core.mail.send_mail',
-             'Follow up',
-             'This is in a test',
-             'from@example.com',
-             ['scout.julia@gmail.com'],
-             schedule_type=Schedule.ONCE,
-             next_run=timezone.now())
-
-        self.duckling = Duckling(user=self.duckling_user, notification_schedule=self.schedule)
-	self.duckling.save()
+        
+        self.duckling = self.duckling_user.related_duckling
 
 	self.client = APIClient()
 	self.client.force_authenticate(user=self.duckling.user)
+	
 	self.quack_data = {'message': 'postive vibe ~~~', 'submitted_by': self.duckling.id}
 	self.response = self.client.post(
 	    reverse('createquack'),
@@ -102,6 +89,14 @@ class ViewTestCase(TestCase):
     def test_api_can_create_a_qauck(self):
 	"""Test the api has quack creation capability."""
 	self.assertEqual(self.response.status_code, status.HTTP_201_CREATED)
+
+    def test_api_can_retrieve_empty_quack_list(self):
+        """Test the api has quack retrieval capability, even if quack list is empty"""
+        response = self.client.get(
+            '/retrievequacks/',
+            format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_api_can_retieve_quack_list(self):
 	"""Test the api has quack retieval capability."""
@@ -113,3 +108,38 @@ class ViewTestCase(TestCase):
             format="json")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_api_can_register_user(self):
+	"""Test the api has user creation capability"""
+	username = "nerd"
+	password = "yaypassword"
+	self.user_data = {'username':username, 'password':password}
+	response = self.client.post(
+            reverse('registeruser'),
+            self.user_data,
+            format="json")
+	self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+#test_api_can_create_duckling not needed because registering a user a
+#automatically creates Duckling (with default vals), using signal
+
+    def test_api_can_get_settings(self):
+	"""Test the api can get a duckling's settings"""
+	
+	response = self.client.get(
+	    '/update/',
+	    format="json"
+	)
+	self.assertEqual(response.status_code, status.HTTP_200_OK)
+    
+
+    def test_api_can_update_settings(self):
+	"""Test the api can update a duckling's settings"""
+	put_info = {"quack_list": [], "wants_push": False, "minute_frequency": 1456, "preferred_time": ""}
+	response = self.client.put(
+	    reverse('update'),
+	    put_info,
+	    format = "json"
+	)
+	
+	self.assertEqual(response.status_code, status.HTTP_200_OK)
