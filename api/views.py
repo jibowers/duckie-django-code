@@ -23,13 +23,17 @@ class CreateQuackView(generics.CreateAPIView):
 	"""Save the post data when creating a new quack object"""
 	serializer.save(submitted_by=self.request.user.related_duckling)
 
+#I don't need this anymore with UpdateSettingsView also providing quacks
+#However this might be useful if modified to get a certain number of quacks
+# maybe as www.ec2....com/quacks/(number)
 class RetrieveQuackView(generics.ListAPIView):
     queryset = Quack.objects.all()
     serializer_class = QuackSerializer
     permission_classes = (permissions.IsAuthenticated,)
 
-    def list(self, request):
-	queryset = self.request.user.related_duckling.quack_list
+    def list(self, request, number):
+	number = int(number)
+	queryset = self.request.user.related_duckling.quack_list.order_by('-submit_date')[:number]
 	serializer = QuackSerializer(queryset, many=True)
 	return Response(serializer.data)
 
@@ -42,7 +46,7 @@ class RegisterUserView(generics.CreateAPIView):
     permission_classes = (permissions.AllowAny,)
 
 class UpdateSettingsView(generics.RetrieveUpdateAPIView):
-    queryset = Duckling.objects.all()
+#    queryset = Duckling.objects.all()
     serializer_class = DucklingSerializer
     permission_classes = (permissions.IsAuthenticated, IsOwner)
     partial = True   
@@ -67,3 +71,21 @@ class UpdateSettingsView(generics.RetrieveUpdateAPIView):
 	this_duckling.wants_push = serializer.validated_data['wants_push']
 	this_duckling.save()
 	update_or_add_schedule(self.request.user.related_duckling)        
+
+class SyncToNewerQuackView(generics.ListAPIView):
+    ## get ten most recently approved quacks
+    ## if < 10 approved quacks, take all of them (is done automatically)
+    ## if filter ten to only take ones that are newer than latest quack of quack_list (to avoid duplicates... which is done automatically)
+
+    # GET view
+    queryset = Quack.objects.order_by('-submit_date')[:10]
+    serializer_class = QuackSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def list(self, request):
+	previous_date = self.request.user.related_duckling.quack_list.order_by('-submit_date')[0].submit_date
+	queryset = Quack.objects.filter(is_approved =True).filter(submit_date__gt=previous_date).order_by('-submit_date')[:10]
+	for q in queryset:
+		self.request.user.related_duckling.quack_list.add(q)
+        serializer = QuackSerializer(queryset, many=True)
+        return Response(serializer.data)

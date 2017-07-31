@@ -10,8 +10,8 @@ import arrow
 
 def add_and_notify(duckling):
     ## add new approved quack to duckling's quack list
-    previous_id = duckling.quack_list.order_by('-id')[:1].id
-    new_quack = Quack.objects.get(is_approved=True).filter(id__gt=previous_id).order_by('id')[:1]
+    previous_date = duckling.quack_list.order_by('-submit_date')[0].submit_date
+    new_quack = Quack.objects.get(is_approved=True).filter(submit_date__gt=previous_date).order_by('submit_date')[0]
 
     ducking.quack_list.add(new_quack)
 

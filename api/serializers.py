@@ -19,8 +19,8 @@ class DucklingSerializer(serializers.ModelSerializer):
 
     user = serializers.ReadOnlyField(source = 'user.username')
     notification_schedule = serializers.ReadOnlyField(source = 'notification_schedule.id')
-    is_moderator = serializers.BooleanField(required=False)    
-    quack_list = QuackSerializer(many=True)
+    is_moderator = serializers.ReadOnlyField(required=False)    
+    #quack_list = serializers.ReadOnlyField(source = 'quack.id')
 
     class Meta:
 	model = Duckling

@@ -127,7 +127,7 @@ class ViewTestCase(TestCase):
 	"""Test the api can get a duckling's settings"""
 	
 	response = self.client.get(
-	    '/update/',
+	    '/getupdateduckling/',
 	    format="json"
 	)
 	self.assertEqual(response.status_code, status.HTTP_200_OK)
