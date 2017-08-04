@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 from django.shortcuts import render
+import datetime
 
 from rest_framework import generics, permissions
 from .serializers import QuackSerializer, DucklingSerializer, UserSerializer
@@ -83,9 +84,40 @@ class SyncToNewerQuackView(generics.ListAPIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def list(self, request):
-	previous_date = self.request.user.related_duckling.quack_list.order_by('-submit_date')[0].submit_date
-	queryset = Quack.objects.filter(is_approved =True).filter(submit_date__gt=previous_date).order_by('-submit_date')[:10]
+	my_quack_list = self.request.user.related_duckling.quack_list
+	try:
+		previous_date = my_quack_list.order_by('-submit_date')[0].submit_date
+		queryset = Quack.objects.filter(is_approved =True).filter(submit_date__gt=previous_date).order_by('-submit_date')[:10]
+	except IndexError:
+		queryset = Quack.objects.filter(is_approved=True).order_by('-submit_date')[:10]
+
 	for q in queryset:
 		self.request.user.related_duckling.quack_list.add(q)
         serializer = QuackSerializer(queryset, many=True)
         return Response(serializer.data)
+
+class ModeratorListView(generics.ListAPIView):
+    queryset = Quack.objects.filter(has_been_processed=False).order_by('submit_date')
+    serializer_class = QuackSerializer
+    permission_classes = (permissions.IsAuthenticated, IsModerator,)
+
+    def list(self, request, number):
+        number = int(number)
+        queryset = Quack.objects.filter(has_been_processed=False).order_by('submit_date')[:number]
+        serializer = QuackSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+class ModeratorUpdateView(generics.RetrieveUpdateAPIView):
+    queryset = Quack.objects.all()
+    serializer_class = QuackSerializer
+    permission_classes = (permissions.IsAuthenticated, IsModerator,)
+
+    def perform_update(self, serializer):
+	## set has_been_processed to True and is_approved to True or False
+	## set submit_date to the current time
+	## possibly delete rejected quack
+	this_quack = Quack.objects.get(pk=self.kwargs['pk'])
+	this_quack.has_been_processed = True
+	this_quack.is_approved = serializer.validated_data['is_approved']
+	this_quack.submit_date = datetime.datetime.now()
+	this_quack.save()

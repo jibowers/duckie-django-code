@@ -11,7 +11,7 @@ class QuackSerializer(serializers.ModelSerializer):
 	"""Meta class to map serializer's fields with the model fields."""
 	model = Quack
 	fields = ('id', 'message', 'submitted_by', 'submit_date', 'has_been_processed', 'is_approved')
-        read_only_fields = ('submit_date', 'has_been_processed', 'is_approved')
+        read_only_fields = ('submit_date',)
  
 
 class DucklingSerializer(serializers.ModelSerializer):
@@ -20,7 +20,7 @@ class DucklingSerializer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source = 'user.username')
     notification_schedule = serializers.ReadOnlyField(source = 'notification_schedule.id')
     is_moderator = serializers.ReadOnlyField(required=False)    
-    #quack_list = serializers.ReadOnlyField(source = 'quack.id')
+    quack_list = serializers.ReadOnlyField(source = 'quack.id')
 
     class Meta:
 	model = Duckling

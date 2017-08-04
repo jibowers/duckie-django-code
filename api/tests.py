@@ -93,7 +93,7 @@ class ViewTestCase(TestCase):
     def test_api_can_retrieve_empty_quack_list(self):
         """Test the api has quack retrieval capability, even if quack list is empty"""
         response = self.client.get(
-            '/retrievequacks/',
+            '/retrievequacks/10/', #must have 10 in there bc url requires number
             format="json")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -104,7 +104,7 @@ class ViewTestCase(TestCase):
 	quack.save()
 	self.duckling.quack_list.add(quack)   
 	response = self.client.get(
-            '/retrievequacks/',
+            '/retrievequacks/10/',
             format="json")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -135,7 +135,7 @@ class ViewTestCase(TestCase):
 
     def test_api_can_update_settings(self):
 	"""Test the api can update a duckling's settings"""
-	put_info = {"quack_list": [], "wants_push": False, "minute_frequency": 1456, "preferred_time": ""}
+	put_info = {"wants_push": False, "minute_frequency": 1456, "preferred_time": ""}
 	response = self.client.put(
 	    reverse('update'),
 	    put_info,
@@ -143,3 +143,11 @@ class ViewTestCase(TestCase):
 	)
 	
 	self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_api_can_sync_to_newer_quack(self):
+	response = self.client.get(
+	    '/synctonewer/',
+	    format="json"
+	)
+	self.assertEqual(response.status_code, status.HTTP_200_OK)
+
